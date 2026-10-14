@@ -14,12 +14,12 @@ which assets it owns, where each one is, and how much it earns.
 
 ## Milestones
 
-### M1 — Assets ✅ (current slice)
+### M1 — Assets ✅
 - [x] REST CRUD + status change (`/api/assets`), Problem Details errors, OpenAPI
 - [x] Flyway migration, optimistic locking (`@Version`)
 - [x] Domain unit tests + API integration tests with Testcontainers
 - [x] Angular list page: signal store, debounced search, filters, pagination, create/edit form
-- [ ] Sync filters with the URL query params (`effect` + router)
+- [x] Sync filters with the URL query params (`effect` + router): `/assets?q=drill&status=RENTED&page=2`
 
 ### M2 — Customers
 - [ ] Customer CRUD with CPF/CNPJ validation (backend + frontend)

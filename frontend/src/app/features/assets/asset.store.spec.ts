@@ -61,6 +61,22 @@ describe('AssetStore', () => {
     expect(store.isEmpty()).toBe(true);
   });
 
+  it('restores filters immediately and ignores an echo of the current ones', () => {
+    store.restore({ status: 'RENTED', search: 'drill', page: 2 });
+    TestBed.tick();
+    const req = http.expectOne(() => true);
+    expect(req.request.params.get('search')).toBe('drill');
+    expect(req.request.params.get('page')).toBe('2');
+    req.flush(page([], 2, 25));
+
+    // the user keeps typing while the URL still holds the applied search
+    store.setSearch('drill press');
+    store.restore({ status: 'RENTED', search: 'drill', page: 0 });
+    expect(store.search()).toBe('drill press');
+    TestBed.tick();
+    http.expectOne((r) => r.params.get('search') === 'drill').flush(page([], 0, 25));
+  });
+
   it('exposes the API error message', () => {
     TestBed.tick();
     http
