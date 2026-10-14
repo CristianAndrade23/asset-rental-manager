@@ -1,0 +1,58 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="asset-form">
+  <h2>{{ isEdit() ? 'Edit asset' : 'New asset' }}</h2>
+
+  <div class="grid">
+    <label>
+      Code
+      <input formControlName="code" [class.invalid]="invalid('code')" />
+      @if (invalid('code')) {
+        <small>Code is required (max 30 characters).</small>
+      }
+    </label>
+
+    <label>
+      Name
+      <input formControlName="name" [class.invalid]="invalid('name')" />
+      @if (invalid('name')) {
+        <small>Name is required.</small>
+      }
+    </label>
+
+    <label>
+      Category
+      <input formControlName="category" [class.invalid]="invalid('category')" />
+      @if (invalid('category')) {
+        <small>Category is required.</small>
+      }
+    </label>
+
+    <label>
+      Serial number
+      <input formControlName="serialNumber" />
+    </label>
+
+    <label>
+      Daily rate
+      <input type="number" step="0.01" min="0" formControlName="dailyRate" [class.invalid]="invalid('dailyRate')" />
+      @if (invalid('dailyRate')) {
+        <small>Daily rate must be zero or more.</small>
+      }
+    </label>
+
+    <label>
+      Acquisition date
+      <input type="date" formControlName="acquisitionDate" />
+    </label>
+  </div>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  <div class="actions">
+    <button type="button" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </button>
+  </div>
+</form>

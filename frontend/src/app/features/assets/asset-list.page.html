@@ -1,0 +1,89 @@
+<div class="page-header">
+  <h1>Assets</h1>
+  <button class="primary" (click)="openCreate()">New asset</button>
+</div>
+
+@if (editing() !== undefined) {
+  <app-asset-form
+    [asset]="editing() ?? null"
+    [saving]="store.saving()"
+    [error]="store.mutationError()"
+    (saved)="save($event)"
+    (cancelled)="closeForm()"
+  />
+}
+
+<div class="filters">
+  <app-search-box
+    class="search"
+    placeholder="Search by code, name or category"
+    [value]="store.search()"
+    (valueChange)="store.setSearch($event)"
+  />
+  <select aria-label="Filter by status" (change)="onStatusFilter($any($event.target).value)">
+    <option value="">All statuses</option>
+    @for (option of statusOptions; track option[0]) {
+      <option [value]="option[0]" [selected]="store.status() === option[0]">{{ option[1] }}</option>
+    }
+  </select>
+</div>
+
+@if (store.error(); as error) {
+  <div class="banner error" role="alert">
+    {{ error }}
+    <button (click)="store.refresh()">Retry</button>
+  </div>
+} @else if (store.mutationError() && editing() === undefined) {
+  <div class="banner error" role="alert">{{ store.mutationError() }}</div>
+}
+
+<div class="table-wrapper" [class.loading]="store.loading()">
+  <table>
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th class="num">Daily rate</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (asset of store.assets(); track asset.id) {
+        <tr>
+          <td class="code">{{ asset.code }}</td>
+          <td>{{ asset.name }}</td>
+          <td>{{ asset.category }}</td>
+          <td class="num">{{ asset.dailyRate | currency: 'BRL' }}</td>
+          <td><app-status-badge [status]="asset.status" /></td>
+          <td class="row-actions">
+            <button (click)="openEdit(asset)">Edit</button>
+            @if (asset.status === 'AVAILABLE' || asset.status === 'MAINTENANCE') {
+              <button (click)="toggleMaintenance(asset)" [disabled]="store.saving()">
+                {{ asset.status === 'MAINTENANCE' ? 'Release' : 'Maintenance' }}
+              </button>
+            }
+            <button class="danger" (click)="remove(asset)" [disabled]="store.saving() || asset.status === 'RENTED'">
+              Delete
+            </button>
+          </td>
+        </tr>
+      } @empty {
+        @if (store.isEmpty()) {
+          <tr>
+            <td colspan="6" class="empty">No assets found.</td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pagination">
+  <span>{{ store.rangeLabel() }}</span>
+  <div>
+    <button (click)="store.previousPage()" [disabled]="!store.hasPrevious()">Previous</button>
+    <button (click)="store.nextPage()" [disabled]="!store.hasNext()">Next</button>
+  </div>
+</div>

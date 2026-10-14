@@ -1,0 +1,42 @@
+name: asset-rental
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: asset_rental
+      POSTGRES_USER: asset_rental
+      POSTGRES_PASSWORD: asset_rental
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asset_rental -d asset_rental"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    profiles: [full]
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/asset_rental
+      DB_USER: asset_rental
+      DB_PASSWORD: asset_rental
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    profiles: [full]
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+
+volumes:
+  db-data:
