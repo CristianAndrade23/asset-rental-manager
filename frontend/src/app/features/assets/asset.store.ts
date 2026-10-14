@@ -1,11 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   Observable,
   catchError,
   debounceTime,
-  distinctUntilChanged,
   firstValueFrom,
   map,
   of,
@@ -34,7 +33,9 @@ export class AssetStore {
 
   // --- filters (writable state) ---
   readonly status = signal<AssetStatus | null>(null);
+  /** What the user typed; `appliedSearch` is what the API is queried with. */
   readonly search = signal('');
+  private readonly appliedSearch = signal('');
   readonly page = signal(0);
   private readonly reloadTick = signal(0);
 
@@ -42,22 +43,21 @@ export class AssetStore {
   readonly saving = signal(false);
   readonly mutationError = signal<string | null>(null);
 
-  // Typing should not fire one request per key stroke.
-  private readonly debouncedSearch = toSignal(
-    toObservable(this.search).pipe(
-      debounceTime(300),
-      map((term) => term.trim()),
-      distinctUntilChanged(),
-    ),
-    { initialValue: '' },
-  );
+  constructor() {
+    // Typing should not fire one request per key stroke.
+    toObservable(this.search)
+      .pipe(debounceTime(300), map((term) => term.trim()), takeUntilDestroyed())
+      .subscribe((term) => this.appliedSearch.set(term));
+  }
 
-  private readonly query = computed<AssetQuery & { tick: number }>(() => ({
+  /** Filters currently applied to the list (the URL mirrors these). */
+  readonly filters = computed<AssetQuery>(() => ({
     status: this.status(),
-    search: this.debouncedSearch(),
+    search: this.appliedSearch(),
     page: this.page(),
-    tick: this.reloadTick(),
   }));
+
+  private readonly query = computed(() => ({ ...this.filters(), tick: this.reloadTick() }));
 
   // switchMap cancels the previous request when the query changes.
   private readonly state = toSignal(
@@ -85,6 +85,22 @@ export class AssetStore {
     const to = from + data.content.length - 1;
     return `${from}–${to} of ${data.totalElements}`;
   });
+
+  /**
+   * Applies filters coming from outside (the URL), skipping the search debounce.
+   * A no-op when they already match, so the URL echo of our own changes does not
+   * overwrite text the user kept typing meanwhile.
+   */
+  restore(query: AssetQuery): void {
+    const current = this.filters();
+    if (current.status === query.status && current.search === query.search && current.page === query.page) {
+      return;
+    }
+    this.status.set(query.status);
+    this.search.set(query.search);
+    this.appliedSearch.set(query.search);
+    this.page.set(query.page);
+  }
 
   setStatus(status: AssetStatus | null): void {
     this.status.set(status);
